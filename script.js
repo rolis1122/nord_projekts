@@ -10,7 +10,10 @@ btn.addEventListener("click", () => {
       const dataUnsorted = csvToArray(importedText);
       const dataSorted = sortData(dataUnsorted);
       const dataSplitedInDays = sliceDataIntoDays(dataUnsorted);
-      console.log(dataUnsorted);
+      console.log(`Kompūzerī iekačātas ${importedText.length} rindiņas`);
+      console.log(
+        `Kas sačiņītas ${dataSplitedInDays.length} blokos, kur katrā blokā ir 24 ieraksti`
+      );
       console.log(dataSplitedInDays);
     };
     reader.readAsText(file);
