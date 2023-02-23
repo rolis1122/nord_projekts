@@ -9,11 +9,15 @@ btn.addEventListener("click", () => {
       const importedText = event.target.result;
       const dataUnsorted = csvToArray(importedText);
       const dataSorted = sortData(dataUnsorted);
-      const dataSplitedInDays = sliceDataIntoDays(dataUnsorted);
-      console.log(`Kompūzerī iekačātas ${importedText.length} rindiņas`);
-      console.log(
-        `Kas sačiņītas ${dataSplitedInDays.length} blokos, kur katrā blokā ir 24 ieraksti`
-      );
+      const dataSplitedInDays = sliceDataIntoDays(dataSorted);
+      const profit = calculateProfit(dataSplitedInDays);
+
+      // console.log(`Kompūzerī iekačātas ${importedText.length} rindiņas`);
+      // console.log(
+      //   `Kas sačiņītas ${dataSplitedInDays.length} blokos, kur katrā blokā ir 24 ieraksti`
+      // );
+      console.log(profit / 1000);
+
       console.log(dataSplitedInDays);
     };
     reader.readAsText(file);
@@ -60,4 +64,59 @@ const sliceDataIntoDays = (arr) => {
     dataSplitedInDays.push(oneDayData);
   }
   return dataSplitedInDays;
+};
+
+const calculateProfit = (arr) => {
+  let totalNetto = 0;
+  let totalBruto = 0;
+  let sadalesTiklaIzmaksas = 0; //Eur/Mwh
+  let elektrumDala = 190; //EUR/Mwh
+  let DaysOfTransactions = 0;
+  for (let i = 0; i < arr.length; i++) {
+    let innerarr = arr[i];
+    let maxDifPerDay = 0.0;
+    for (let x = 0; x < innerarr.length; x++) {
+      for (let y = x + 1; y < innerarr.length; y++) {
+        //console.log(i, x, y, maxDifPerDay);
+        if (
+          parseInt(innerarr[x].price) < parseInt(innerarr[y].price) &&
+          maxDifPerDay <
+            parseInt(innerarr[y].price) - parseInt(innerarr[x].price)
+        ) {
+          maxDifPerDay =
+            parseInt(innerarr[y].price) - parseInt(innerarr[x].price);
+          // console.log(
+          //   `i=${i} x=${x} y=${y}, maxdiffperday=${maxDifPerDay}, totalbruto${totalBruto}`
+          // );
+        }
+      }
+    }
+    if (maxDifPerDay > elektrumDala) {
+      totalBruto += maxDifPerDay;
+      DaysOfTransactions++;
+    } else {
+      console.log("!!!bizītis šais dienā nenotiek!!!");
+    }
+
+    totalNetto =
+      totalBruto -
+      elektrumDala * DaysOfTransactions -
+      sadalesTiklaIzmaksas * arr.length;
+    console.log(
+      `bruto income in day ${i + 1} = ${
+        maxDifPerDay / 1000
+      } and total bruto since day1 = ${totalBruto / 1000}`
+    );
+    console.log(
+      `neto income in day${i + 1} = ${
+        maxDifPerDay / 1000 - elektrumDala / 1000
+      }`
+    );
+  }
+
+  console.log(
+    `totalneto(${totalNetto}) = totalbruto(${totalBruto}) - elektrum(${elektrumDala}) x cikreizes(${arr.length})`
+  );
+
+  return totalNetto;
 };
