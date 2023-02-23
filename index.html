@@ -8,24 +8,29 @@
     <title>N-Pool</title>
     <link rel="icon" href="logo.png" type="image/icon type" />
     <link rel="stylesheet" href="style.css" />
+    <!-- <script
+      src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.2.1/chart.min.js"
+      integrity="sha512-v3ygConQmvH0QehvQa6gSvTE2VdBZ6wkLOlmK7Mcy2mZ0ZF9saNbbk19QeaoTHdWIEiTlWmrwAL4hS8ElnGFbA=="
+      crossorigin="anonymous"
+      referrerpolicy="no-referrer"
+    ></script> -->
+    <script
+      src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"
+      integrity="sha512-ElRFoEQdI5Ht6kZvyzXhYG9NqjtkmlkfYk0wr6wHxU9JEHakS7UJZNeml5ALk+8IKlU6jDgMabC3vkumRokgJA=="
+      crossorigin="anonymous"
+      referrerpolicy="no-referrer"
+    ></script>
   </head>
   <body>
     <div class="startercontainer">
-      <p>
-        csv failu vari nokačāt
-        <a href="https://nordpool.didnt.work/nordpool.csv">šeit</a>
-      </p>
       <input type="file" id="csvFile" accept=".csv" />
       <br />
-      <p>
-        Uzspied labo taustiņu - inspect - un atver Console <br />
-        Šobrīd pagaidām tur parādīsies info...
-      </p>
-      <button id="btn">start</button>
+      <button id="calculate">calculate data</button>
     </div>
-    <div class="datukonteiners">
-      <p>Šeit kaut kas kādreiz taps</p>
-    </div>
+    <div id="file-content">Nothing uploaded yet</div>
+    <div id="file-content2"></div>
+
+    <canvas id="myChart"></canvas>
 
     <script src="script.js"></script>
   </body>
