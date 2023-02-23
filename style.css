@@ -2,20 +2,15 @@ body {
   background-color: #111;
   color: white;
 }
-.datukonteiners {
-  padding: 0px;
-  border-radius: 20px;
-  background-color: black;
-  border-color: darkred;
-  border: solid;
-  width: 80%;
-  height: 100px;
-  margin-top: 50px;
-  text-align: center;
-}
 
 .datukonteiners:hover {
   background-color: aqua;
   font-size: 2rem;
   transition: 700ms;
+}
+#myChart {
+  border: solid 5px;
+  border-color: beige;
+  border-radius: 20px;
+  margin: 20px;
 }
