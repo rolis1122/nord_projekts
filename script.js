@@ -1,31 +1,52 @@
-const btn = document.querySelector("#btn");
-btn.addEventListener("click", () => {
-  let file = document.querySelector("#csvFile").files[0];
-  if (file === undefined) {
-    alert("iepis failu sistēmā!!!");
-  } else {
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const importedText = event.target.result;
-      const dataUnsorted = csvToArray(importedText);
-      const dataSorted = sortData(dataUnsorted);
-      const dataSplitedInDays = sliceDataIntoDays(dataSorted);
-      const profit = calculateProfit(dataSplitedInDays);
+const readUploadedFileAsText = (inputFile) => {
+  const temporaryFileReader = new FileReader();
 
-      // console.log(`Kompūzerī iekačātas ${importedText.length} rindiņas`);
-      // console.log(
-      //   `Kas sačiņītas ${dataSplitedInDays.length} blokos, kur katrā blokā ir 24 ieraksti`
-      // );
-      console.log(profit / 1000);
-
-      console.log(dataSplitedInDays);
+  return new Promise((resolve, reject) => {
+    temporaryFileReader.onerror = () => {
+      temporaryFileReader.abort();
+      reject(new DOMException("Problem parsing input file."));
     };
-    reader.readAsText(file);
+
+    temporaryFileReader.onload = () => {
+      resolve(temporaryFileReader.result);
+    };
+    temporaryFileReader.readAsText(inputFile);
+  });
+};
+
+const handleUpload = async (event) => {
+  const file = event.target.files[0];
+  const fileContentDiv = document.querySelector("div#file-content");
+  try {
+    const fileContents = await readUploadedFileAsText(file);
+
+    fileContentDiv.innerHTML = "kaut kas iekačāts";
+
+    importedData.push(fileContents);
+  } catch (e) {
+    fileContentDiv.innerHTML = e.message;
   }
+};
+
+document.querySelector("#csvFile").addEventListener("change", handleUpload);
+// -----------------------------//
+
+let importedData = [];
+const btnCalc = document.querySelector("#calculate");
+btnCalc.addEventListener("click", () => {
+  const fullArray = convertTextToArrayWithObjects(importedData.toString());
+  console.log(fullArray);
+  sortData(fullArray);
+  const chunkedArray = chunkArray(fullArray);
+  console.log(chunkedArray);
+  const brutoProfitData = calculateMaxDiffPerDay(chunkedArray);
+  console.log(brutoProfitData);
+  drawChart();
+  return brutoProfitData;
 });
 
 // makes object data from imported CSV file
-const csvToArray = (str, delimiter = ",") => {
+const convertTextToArrayWithObjects = (str, delimiter = ",") => {
   const headers = str
     .slice(0, str.indexOf("\n"))
     .replaceAll("ts_", "")
@@ -46,17 +67,15 @@ const csvToArray = (str, delimiter = ",") => {
   });
   return arr;
 };
-
 // sorts data in ascending order
 const sortData = (arr) => {
-  const dataSorted = arr.sort(
+  const sortedArray = arr.sort(
     (a, b) => new Date(a.start).getTime() - new Date(b.end).getTime()
   );
-  return dataSorted;
 };
 
-// slices all data into 24h chunks
-const sliceDataIntoDays = (arr) => {
+//slices all data into 24h chunks
+const chunkArray = (arr) => {
   const chunkSize = 24;
   const dataSplitedInDays = [];
   for (let i = 0; i < arr.length; i += chunkSize) {
@@ -65,13 +84,10 @@ const sliceDataIntoDays = (arr) => {
   }
   return dataSplitedInDays;
 };
-
-const calculateProfit = (arr) => {
-  let totalNetto = 0;
-  let totalBruto = 0;
-  let sadalesTiklaIzmaksas = 0; //Eur/Mwh
-  let elektrumDala = 190; //EUR/Mwh
-  let DaysOfTransactions = 0;
+// calculates max dif per day
+const calculateMaxDiffPerDay = (arr) => {
+  let xasislabels = [];
+  const brutoPerDay = [];
   for (let i = 0; i < arr.length; i++) {
     let innerarr = arr[i];
     let maxDifPerDay = 0.0;
@@ -87,36 +103,63 @@ const calculateProfit = (arr) => {
             parseInt(innerarr[y].price) - parseInt(innerarr[x].price);
           // console.log(
           //   `i=${i} x=${x} y=${y}, maxdiffperday=${maxDifPerDay}, totalbruto${totalBruto}`
-          // );
+          //);
         }
       }
     }
-    if (maxDifPerDay > elektrumDala) {
-      totalBruto += maxDifPerDay;
-      DaysOfTransactions++;
-    } else {
-      console.log("!!!bizītis šais dienā nenotiek!!!");
-    }
 
-    totalNetto =
-      totalBruto -
-      elektrumDala * DaysOfTransactions -
-      sadalesTiklaIzmaksas * arr.length;
-    console.log(
-      `bruto income in day ${i + 1} = ${
-        maxDifPerDay / 1000
-      } and total bruto since day1 = ${totalBruto / 1000}`
-    );
-    console.log(
-      `neto income in day${i + 1} = ${
-        maxDifPerDay / 1000 - elektrumDala / 1000
-      }`
-    );
+    brutoPerDay.push(maxDifPerDay / 1000);
+    yValues.push(maxDifPerDay / 1000);
+    xasislabels.push(arr[i][0].start);
+    xlabels.push(arr[i][0].start);
   }
+  // console.log(brutoPerDay);
+  // console.log(xasislabels);
 
-  console.log(
-    `totalneto(${totalNetto}) = totalbruto(${totalBruto}) - elektrum(${elektrumDala}) x cikreizes(${arr.length})`
-  );
-
-  return totalNetto;
+  return { brutoPerDay, xasislabels };
 };
+
+const xlabels = [];
+const yValues = [];
+function drawChart() {
+  const ctx = document.getElementById("myChart").getContext("2d");
+  const myChart = new Chart(ctx, {
+    type: "bar",
+    data: {
+      labels: xlabels,
+      datasets: [
+        {
+          label: "ir bizītis",
+          data: yValues.map((value) => {
+            return value < 0.1 ? value : null;
+          }),
+          backgroundColor: ["rgba(255, 99, 132, 0.2)"],
+          borderColor: ["rgba(255, 99, 132, 1)"],
+          borderWidth: 1,
+        },
+        {
+          label: "nav bizīša",
+          data: yValues.map((value) => {
+            return value >= 0.1 ? value : null;
+          }),
+          backgroundColor: ["green"],
+          borderColor: ["rgba(255, 99, 132, 1)"],
+          borderWidth: 1,
+        },
+      ],
+    },
+
+    options: {
+      scales: {
+        y: {
+          beginAtZero: true,
+        },
+        x: {
+          categoryPercentage: 1.0,
+          barPercentage: 1.0,
+          stacked: true,
+        },
+      },
+    },
+  });
+}
