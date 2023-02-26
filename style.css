@@ -1,16 +1,18 @@
 body {
   background-color: #111;
   color: white;
+  margin: 20px;
 }
 
-.datukonteiners:hover {
-  background-color: aqua;
-  font-size: 2rem;
-  transition: 700ms;
-}
-#myChart {
-  border: solid 5px;
+.chart {
+  border: solid 1px;
   border-color: beige;
-  border-radius: 20px;
-  margin: 20px;
+  border-radius: 5px;
+  margin-bottom: 5px;
+}
+.calc-info-field {
+  border: 1px solid;
+  border-radius: 5px;
+  background-color: #141414;
+  margin: 5 0;
 }

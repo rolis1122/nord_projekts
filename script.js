@@ -1,52 +1,34 @@
-const readUploadedFileAsText = (inputFile) => {
-  const temporaryFileReader = new FileReader();
-
-  return new Promise((resolve, reject) => {
-    temporaryFileReader.onerror = () => {
-      temporaryFileReader.abort();
-      reject(new DOMException("Problem parsing input file."));
-    };
-
-    temporaryFileReader.onload = () => {
-      resolve(temporaryFileReader.result);
-    };
-    temporaryFileReader.readAsText(inputFile);
+fetchedDataFromCsv = []; // šito kkā vajadzētu ievilkt iekšā un aizvākt no global scope
+const onload = fetch("./30.csv")
+  .then((res) => {
+    return res.text();
+  })
+  .then((data) => {
+    fetchedDataFromCsv.push(data);
+    izejasDati = convertTextToArray(fetchedDataFromCsv.toString());
+    return sortData(izejasDati);
   });
-};
 
-const handleUpload = async (event) => {
-  const file = event.target.files[0];
-  const fileContentDiv = document.querySelector("div#file-content");
-  try {
-    const fileContents = await readUploadedFileAsText(file);
+const btnDrawChart = document.querySelector("#drawChart");
+btnDrawChart.addEventListener("click", () => {
+  const chunkedArray = chunkArray(izejasDati);
+  const incomeDataArray = calcIncomeData(chunkedArray);
+  drawChart(incomeDataArray);
+  let brutoProfit = calcBrutoPerPeriod(incomeDataArray[0]);
+  console.log("bruto profits par visu periodu= " + brutoProfit + " Eur");
+  console.log("netto profits par visu periodu= " + incomeDataArray[2] + " Eur");
 
-    fileContentDiv.innerHTML = "kaut kas iekačāts";
-
-    importedData.push(fileContents);
-  } catch (e) {
-    fileContentDiv.innerHTML = e.message;
-  }
-};
-
-document.querySelector("#csvFile").addEventListener("change", handleUpload);
-// -----------------------------//
-
-let importedData = [];
-const btnCalc = document.querySelector("#calculate");
-btnCalc.addEventListener("click", () => {
-  const fullArray = convertTextToArrayWithObjects(importedData.toString());
-  console.log(fullArray);
-  sortData(fullArray);
-  const chunkedArray = chunkArray(fullArray);
-  console.log(chunkedArray);
-  const brutoProfitData = calculateMaxDiffPerDay(chunkedArray);
-  console.log(brutoProfitData);
-  drawChart();
-  return brutoProfitData;
+  const bodyBrutoRef = document.querySelector("#bruto");
+  bodyBrutoRef.innerHTML = ` Total bruto profit in range =  ${brutoProfit.toFixed(
+    3
+  )} Eur`;
+  const bodyNetoRef = document.querySelector("#neto");
+  bodyNetoRef.innerHTML = ` Total neto profit in range =  ${incomeDataArray[2].toFixed(
+    3
+  )} Eur. (ja pieņem Elektrum daļu 0.09Eur/Kwh)`;
 });
 
-// makes object data from imported CSV file
-const convertTextToArrayWithObjects = (str, delimiter = ",") => {
+const convertTextToArray = (str, delimiter = ",") => {
   const headers = str
     .slice(0, str.indexOf("\n"))
     .replaceAll("ts_", "")
@@ -59,22 +41,17 @@ const convertTextToArrayWithObjects = (str, delimiter = ",") => {
     .split("\n");
   const arr = rows.map((line) => {
     const values = line.split(delimiter);
-    const el = headers.reduce((object, header, index) => {
+    const arr = headers.reduce((object, header, index) => {
       object[header] = values[index];
       return object;
     }, {});
-    return el;
+    return arr;
   });
   return arr;
 };
-// sorts data in ascending order
 const sortData = (arr) => {
-  const sortedArray = arr.sort(
-    (a, b) => new Date(a.start).getTime() - new Date(b.end).getTime()
-  );
+  arr.sort((a, b) => new Date(a.start).getTime() - new Date(b.end).getTime());
 };
-
-//slices all data into 24h chunks
 const chunkArray = (arr) => {
   const chunkSize = 24;
   const dataSplitedInDays = [];
@@ -84,63 +61,71 @@ const chunkArray = (arr) => {
   }
   return dataSplitedInDays;
 };
-// calculates max dif per day
-const calculateMaxDiffPerDay = (arr) => {
+const calcIncomeData = (arr) => {
   let xasislabels = [];
-  const brutoPerDay = [];
+  const brutoPerDayArray = [];
+  let netoPerDay = 0;
+  const elektrum = 0.09;
   for (let i = 0; i < arr.length; i++) {
     let innerarr = arr[i];
-    let maxDifPerDay = 0.0;
+    let foudMaxDelta = 0.0;
     for (let x = 0; x < innerarr.length; x++) {
       for (let y = x + 1; y < innerarr.length; y++) {
-        //console.log(i, x, y, maxDifPerDay);
         if (
           parseInt(innerarr[x].price) < parseInt(innerarr[y].price) &&
-          maxDifPerDay <
-            parseInt(innerarr[y].price) - parseInt(innerarr[x].price)
+          foudMaxDelta <
+            parseInt(innerarr[y].price) - parseInt(innerarr[x].price) &&
+          parseInt(innerarr[y].price) - parseInt(innerarr[x].price) > 0
         ) {
-          maxDifPerDay =
+          foudMaxDelta =
             parseInt(innerarr[y].price) - parseInt(innerarr[x].price);
           // console.log(
-          //   `i=${i} x=${x} y=${y}, maxdiffperday=${maxDifPerDay}, totalbruto${totalBruto}`
-          //);
+          //   `buy=${innerarr[x].start} sell=${innerarr[y].start}, foundMaxDelta = ${foudMaxDelta}`
+          // );
         }
       }
     }
+    if (foudMaxDelta / 1000 > elektrum) {
+      netoPerDay += foudMaxDelta / 1000 - elektrum;
+    }
 
-    brutoPerDay.push(maxDifPerDay / 1000);
-    yValues.push(maxDifPerDay / 1000);
-    xasislabels.push(arr[i][0].start);
-    xlabels.push(arr[i][0].start);
+    brutoPerDayArray.push(foudMaxDelta / 1000);
+    let dt = new Date(arr[i][0].start);
+    let dt2 = dt.getFullYear() + "/" + (dt.getMonth() + 1) + "/" + dt.getDate();
+
+    xasislabels.push(dt2);
+    console.log(
+      `brutoProfitPerDay @ ${new Date(arr[i][0].start).getDate()}-${
+        new Date(arr[i][0].start).getMonth() + 1
+      }-${new Date(arr[i][0].start).getFullYear()} = ${
+        foudMaxDelta / 1000
+      }Eur/Kwh`
+    );
   }
-  // console.log(brutoPerDay);
-  // console.log(xasislabels);
-
-  return { brutoPerDay, xasislabels };
+  const exportedData = [];
+  exportedData.push(brutoPerDayArray, xasislabels, netoPerDay);
+  return exportedData;
 };
-
-const xlabels = [];
-const yValues = [];
-function drawChart() {
+function drawChart(arr) {
   const ctx = document.getElementById("myChart").getContext("2d");
   const myChart = new Chart(ctx, {
     type: "bar",
     data: {
-      labels: xlabels,
+      labels: arr[1],
       datasets: [
         {
-          label: "ir bizītis",
-          data: yValues.map((value) => {
-            return value < 0.1 ? value : null;
+          label: "nav bizīša",
+          data: arr[0].map((value) => {
+            return value < 0.09 ? value : null;
           }),
           backgroundColor: ["rgba(255, 99, 132, 0.2)"],
           borderColor: ["rgba(255, 99, 132, 1)"],
           borderWidth: 1,
         },
         {
-          label: "nav bizīša",
-          data: yValues.map((value) => {
-            return value >= 0.1 ? value : null;
+          label: "ir bizīts",
+          data: arr[0].map((value) => {
+            return value >= 0.09 ? value : null;
           }),
           backgroundColor: ["green"],
           borderColor: ["rgba(255, 99, 132, 1)"],
@@ -163,3 +148,7 @@ function drawChart() {
     },
   });
 }
+const calcBrutoPerPeriod = (arr) => {
+  sum = arr.reduce((a, b) => a + b, 0);
+  return sum;
+};

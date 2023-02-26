@@ -8,12 +8,6 @@
     <title>N-Pool</title>
     <link rel="icon" href="logo.png" type="image/icon type" />
     <link rel="stylesheet" href="style.css" />
-    <!-- <script
-      src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.2.1/chart.min.js"
-      integrity="sha512-v3ygConQmvH0QehvQa6gSvTE2VdBZ6wkLOlmK7Mcy2mZ0ZF9saNbbk19QeaoTHdWIEiTlWmrwAL4hS8ElnGFbA=="
-      crossorigin="anonymous"
-      referrerpolicy="no-referrer"
-    ></script> -->
     <script
       src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"
       integrity="sha512-ElRFoEQdI5Ht6kZvyzXhYG9NqjtkmlkfYk0wr6wHxU9JEHakS7UJZNeml5ALk+8IKlU6jDgMabC3vkumRokgJA=="
@@ -22,15 +16,14 @@
     ></script>
   </head>
   <body>
-    <div class="startercontainer">
-      <input type="file" id="csvFile" accept=".csv" />
-      <br />
-      <button id="calculate">calculate data</button>
+    <div class="buttons">
+      <button id="drawChart">draw chart</button>
     </div>
-    <div id="file-content">Nothing uploaded yet</div>
-    <div id="file-content2"></div>
-
-    <canvas id="myChart"></canvas>
+    <div class="chart">
+      <canvas id="myChart"></canvas>
+      <div class="calc-info-field" id="bruto"></div>
+      <div class="calc-info-field" id="neto"></div>
+    </div>
 
     <script src="script.js"></script>
   </body>
